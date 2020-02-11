@@ -47,3 +47,15 @@ input.slider::-webkit-slider-thumb {
     cursor: pointer;
     -webkit-appearance: none;
 }
+
+progress.form-control {
+    padding: 0;
+}
+
+progress::-webkit-progress-bar {
+    background: #fff;
+}
+
+progress::-webkit-progress-value {
+    background: var(--primary);
+}

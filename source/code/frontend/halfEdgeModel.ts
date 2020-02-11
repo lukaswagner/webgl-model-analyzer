@@ -39,7 +39,6 @@ class HalfEdge {
 class Face {
     public halfEdges: HalfEdge[];
     public normal: vec3;
-    public filterValues: { [id: string]: vec3; } = {};
 
     constructor(halfEdge0: HalfEdge, halfEdge1: HalfEdge, halfEdge2: HalfEdge) {
         this.halfEdges = [];
@@ -69,6 +68,7 @@ export class HalfEdgeModel {
     public vertices: Vertex[];
     public halfEdges: HalfEdge[];
     public faces: Face[];
+    public filterValues: { [id: string]: vec3[]; } = {};
 
     protected mergeByDistance(mesh: any, threshold = 0.0000001): void {
         const threshold2 = threshold * threshold;
@@ -192,7 +192,7 @@ export class HalfEdgeModel {
 
         values = new Float32Array(this.faces.length * 3 * 3);
         this.faces.forEach((face: Face, faceIndex: number) => {
-            const value = face.filterValues[id];
+            const value = this.filterValues[id][faceIndex];
             face.halfEdges.forEach((halfEdge: HalfEdge, edgeIndex: number) => {
                 values[faceIndex * 9 + edgeIndex * 3 + 0] = value[0];
                 values[faceIndex * 9 + edgeIndex * 3 + 1] = value[1];

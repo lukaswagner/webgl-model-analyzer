@@ -1,14 +1,18 @@
 import { HalfEdgeModel } from "../halfEdgeModel";
 import { vec3 } from "gl-matrix";
 
-export const id = 'normal';
-export const name = 'Normal';
+export const id = 'slow';
+export const name = 'Slow';
 export function func(model: HalfEdgeModel): vec3[] {
     const result = new Array<vec3>(model.faces.length);
 
+    console.debug('Printing some stuff to console...');
+    for(let i = 0; i < 1e5; i++) {
+        console.debug('SPAM');
+    }
+
     model.faces.forEach((face, index) => {
-        result[index] = vec3.scaleAndAdd(
-            vec3.create(), vec3.fromValues(0.5, 0.5, 0.5), face.normal, 0.5);
+        result[index] = vec3.create();
     });
 
     return result;

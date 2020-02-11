@@ -3,7 +3,9 @@ import { vec3 } from "gl-matrix";
 
 export const id = 'height';
 export const name = 'Height';
-export function func(model: HalfEdgeModel): void {
+export function func(model: HalfEdgeModel): vec3[] {
+    const result = new Array<vec3>(model.faces.length);
+
     let min = Number.MAX_VALUE;
     let max = Number.MIN_VALUE;
 
@@ -15,11 +17,13 @@ export function func(model: HalfEdgeModel): void {
 
     const range = max - min;
 
-    for (const face of model.faces) {
+    model.faces.forEach((face, index) => {
         const height = face.halfEdges
             .map((e) => e.vertex0.position[1])
             .reduce((a, b) => a + b) / 3;
         const value = (height - min) / range;
-        face.filterValues[this.id] = vec3.fromValues(value, value, value);
-    }
+        result[index] = vec3.fromValues(value, value, value);
+    });
+
+    return result;
 };
