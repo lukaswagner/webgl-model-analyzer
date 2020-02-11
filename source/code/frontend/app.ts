@@ -2,26 +2,21 @@ import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import { Initializable, Canvas, auxiliaries, Wizard, Renderer, mat4 } from "webgl-operate";
-import { TopicMapRenderer } from "./renderer";
-import { importPointsFromCSV } from "./csv";
+import { ModelRenderer } from "./renderer";
+// @ts-ignore
+import parseStl from 'parse-stl';
+import { HalfEdgeModel } from './halfEdgeModel';
 
-export class TopicMapApp extends Initializable {
+export class App extends Initializable {
 
     private _canvas: Canvas;
-    private _renderer: TopicMapRenderer;
+    private _renderer: ModelRenderer;
+    private _halfEdgeModel: HalfEdgeModel;
 
     initialize(element: HTMLCanvasElement | string): boolean {
+        this._canvas = new Canvas(element);
 
-        const aa = auxiliaries.GETparameter('antialias');
-
-        this._canvas = new Canvas(element, {
-            antialias: aa === undefined ? true : JSON.parse(aa!),
-        });
-        this._canvas.controller.multiFrameNumber = 1;
-        this._canvas.framePrecision = Wizard.Precision.byte;
-        this._canvas.frameScale = [1.0, 1.0];
-
-        this._renderer = new TopicMapRenderer();
+        this._renderer = new ModelRenderer();
         this._canvas.renderer = this._renderer;
 
         const dataSelect =
@@ -42,34 +37,10 @@ export class TopicMapApp extends Initializable {
             });
         });
 
-        const pointSizeInput =
-            document.getElementById('point-size-input') as HTMLInputElement;
-        const pointSizeRange =
-            document.getElementById('point-size-range') as HTMLInputElement;
-        pointSizeInput.addEventListener('input', () => {
-            pointSizeRange.value = pointSizeInput.value;
-            this._renderer.pointSize = Number(pointSizeInput.value);
-        });
-        pointSizeRange.addEventListener('input', () => {
-            pointSizeInput.value = pointSizeRange.value;
-            this._renderer.pointSize = Number(pointSizeRange.value);
-        });
-
-        const pointSizeDefault = '0.02';
-        const pointSizeMin = '0.01';
-        const pointSizeMax = '0.5';
-        const pointSizeStep = '0.001';
-        this._renderer.pointSize = Number(pointSizeDefault);
-        pointSizeInput.value = pointSizeDefault;
-        pointSizeRange.value = pointSizeDefault;
-        pointSizeRange.min = pointSizeMin;
-        pointSizeRange.max = pointSizeMax;
-        pointSizeRange.step = pointSizeStep;
-
         const applyScale = (scaleString: string) => {
             const scale = Number(scaleString);
-            this._renderer.model =
-                mat4.fromScaling(mat4.create(), [scale, scale, scale]);
+            // this._renderer.model =
+            //     mat4.fromScaling(mat4.create(), [scale, scale, scale]);
         };
 
         const scaleInput =
@@ -100,8 +71,18 @@ export class TopicMapApp extends Initializable {
     }
 
     load(path: string): void {
-        importPointsFromCSV(['data/' + path])
-            .then(result => this._renderer.data = result);
+        console.log(path);
+        fetch('data/' + path).then((res) => {
+            res.text().then((stl) => {
+                const mesh = parseStl(stl);
+                if (this._halfEdgeModel === undefined) {
+                    this._halfEdgeModel = new HalfEdgeModel();
+                }
+                this._halfEdgeModel.load(mesh);
+                console.log(this._halfEdgeModel);
+                this._renderer.model = this._halfEdgeModel;
+            });
+        });
     }
 
     uninitialize(): void {
@@ -114,7 +95,7 @@ export class TopicMapApp extends Initializable {
         return this._canvas;
     }
 
-    get renderer(): TopicMapRenderer {
+    get renderer(): ModelRenderer {
         return this._renderer;
     }
 }
