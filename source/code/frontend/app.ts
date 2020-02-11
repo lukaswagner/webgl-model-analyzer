@@ -27,11 +27,11 @@ export class App extends Initializable {
 
         fetch('/ls').then((res) => {
             res.json().then((j) => {
-                j.forEach((s: string) => {
-                    const o = document.createElement('option');
-                    o.value = s;
-                    o.text = s;
-                    dataSelect.options.add(o);
+                j.forEach((model: string) => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.text = model;
+                    dataSelect.options.add(option);
                 });
                 this.load(dataSelect.value);
             });
@@ -39,8 +39,7 @@ export class App extends Initializable {
 
         const applyScale = (scaleString: string) => {
             const scale = Number(scaleString);
-            // this._renderer.model =
-            //     mat4.fromScaling(mat4.create(), [scale, scale, scale]);
+            this._renderer.scale = scale;
         };
 
         const scaleInput =
@@ -79,7 +78,6 @@ export class App extends Initializable {
                     this._halfEdgeModel = new HalfEdgeModel();
                 }
                 this._halfEdgeModel.load(mesh);
-                console.log(this._halfEdgeModel);
                 this._renderer.model = this._halfEdgeModel;
             });
         });

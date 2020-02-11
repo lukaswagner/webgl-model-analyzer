@@ -33,6 +33,16 @@ export class ModelRenderer extends Renderer {
         this.invalidate(true);
     }
 
+    set scale(scale: number) {
+        const mat =  mat4.fromScaling(mat4.create(), [scale, scale, scale]);
+        const gl = this._context.gl as WebGLRenderingContext;
+        this._program.bind();
+        gl.uniformMatrix4fv(
+            this._program.uniform('u_model'), false, mat);
+        this._program.unbind();
+        this.invalidate(true);
+    }
+
     /**
      * Initializes and sets up buffer, cube geometry, camera and links shaders
      * with program.
@@ -50,7 +60,7 @@ export class ModelRenderer extends Renderer {
         this._defaultFBO.initialize();
         this._defaultFBO.bind();
 
-        const gl = context.gl;
+        const gl = context.gl as WebGLRenderingContext;
 
         const geometry = new HalfEdgeGeometry(context);
         geometry.initialize();
@@ -72,7 +82,7 @@ export class ModelRenderer extends Renderer {
         this._uViewProjection = this._program.uniform('u_viewProjection');
         const identity = mat4.identity(mat4.create());
         gl.uniformMatrix4fv(
-            this._program.uniform('u_model'), gl.FALSE, identity);
+            this._program.uniform('u_model'), false, identity);
 
         this._camera = new Camera();
         this._camera.center = vec3.fromValues(0.0, 0.0, 0.0);
