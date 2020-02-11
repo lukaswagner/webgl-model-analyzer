@@ -1,7 +1,7 @@
 import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import { Initializable, Canvas, auxiliaries, Wizard, Renderer, mat4 } from "webgl-operate";
+import { Initializable, Canvas, auxiliaries, Wizard, Renderer, mat4, viewer } from "webgl-operate";
 import { ModelRenderer } from "./renderer";
 // @ts-ignore
 import parseStl from 'parse-stl';
@@ -12,12 +12,38 @@ export class App extends Initializable {
     private _canvas: Canvas;
     private _renderer: ModelRenderer;
     private _halfEdgeModel: HalfEdgeModel;
+    private _filters: {
+        id: string,
+        name: string,
+        func: (model: HalfEdgeModel) => void
+    }[] = [
+        require('./filter/height'),
+        require('./filter/normal')
+    ]
+
+    private _filterSelect: HTMLSelectElement;
 
     initialize(element: HTMLCanvasElement | string): boolean {
         this._canvas = new Canvas(element);
 
         this._renderer = new ModelRenderer();
         this._canvas.renderer = this._renderer;
+        this._canvas.element.addEventListener('dblclick', () => {
+            viewer.Fullscreen.toggle(this._canvas.element);
+        });
+
+        this._filterSelect =
+            document.getElementById('filter-select') as HTMLSelectElement;
+        this._filters.forEach((filter) => {
+            const option = document.createElement('option');
+            option.value = filter.id;
+            option.text = filter.name;
+            this._filterSelect.options.add(option);
+        });
+        this._filterSelect.addEventListener('change', () => {
+            this._renderer.filter =
+                this._halfEdgeModel.getValues(this._filterSelect.value);
+        });
 
         const dataSelect =
             document.getElementById('data-select') as HTMLSelectElement;
@@ -79,6 +105,11 @@ export class App extends Initializable {
                 }
                 this._halfEdgeModel.load(mesh);
                 this._renderer.model = this._halfEdgeModel;
+                this._filters.forEach((filter) => {
+                    filter.func(this._halfEdgeModel);
+                });
+                this._renderer.filter =
+                    this._halfEdgeModel.getValues(this._filterSelect.value);
             });
         });
     }

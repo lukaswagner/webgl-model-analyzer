@@ -1,4 +1,4 @@
-import { mat4, vec3 } from 'gl-matrix';
+import { mat4, vec3, mat3 } from 'gl-matrix';
 
 import {
     Camera,
@@ -22,24 +22,27 @@ export class ModelRenderer extends Renderer {
     protected _navigation: Navigation;
 
     protected _program: Program;
+    protected _uModel: WebGLUniformLocation;
     protected _uViewProjection: WebGLUniformLocation;
+    protected _uModelViewInverseTranspose: WebGLUniformLocation;
 
     protected _defaultFBO: DefaultFramebuffer;
 
     protected _geometry: HalfEdgeGeometry;
+    protected _modelMatrix: mat4;
 
     set model(model: HalfEdgeModel) {
         this._geometry.model = model;
         this.invalidate(true);
     }
 
+    set filter(values: Float32Array) {
+        this._geometry.filterValues = values;
+        this.invalidate(true);
+    }
+
     set scale(scale: number) {
-        const mat =  mat4.fromScaling(mat4.create(), [scale, scale, scale]);
-        const gl = this._context.gl as WebGLRenderingContext;
-        this._program.bind();
-        gl.uniformMatrix4fv(
-            this._program.uniform('u_model'), false, mat);
-        this._program.unbind();
+        mat4.fromScaling(this._modelMatrix, [scale, scale, scale]);
         this.invalidate(true);
     }
 
@@ -67,9 +70,9 @@ export class ModelRenderer extends Renderer {
         this._geometry = geometry;
 
         const vert = new Shader(context, gl.VERTEX_SHADER);
-        vert.initialize(require('./basic.vert'));
+        vert.initialize(require('./shader/basic.vert'));
         const frag = new Shader(context, gl.FRAGMENT_SHADER);
-        frag.initialize(require('./colorFromAttr.frag'));
+        frag.initialize(require('./shader/colorFromAttr.frag'));
 
         this._program = new Program(context);
         this._program.initialize([vert, frag], false);
@@ -79,17 +82,22 @@ export class ModelRenderer extends Renderer {
         this._program.link();
         this._program.bind();
 
-        this._uViewProjection = this._program.uniform('u_viewProjection');
-        const identity = mat4.identity(mat4.create());
-        gl.uniformMatrix4fv(
-            this._program.uniform('u_model'), false, identity);
+        this._uModel =
+            this._program.uniform('u_model');
+        this._uViewProjection =
+            this._program.uniform('u_viewProjection');
+        this._uModelViewInverseTranspose =
+            this._program.uniform('u_modelViewInverseTranspose');
+
+        this._modelMatrix = mat4.identity(mat4.create());
+        gl.uniformMatrix4fv(this._uModel, false, this._modelMatrix);
 
         this._camera = new Camera();
         this._camera.center = vec3.fromValues(0.0, 0.0, 0.0);
         this._camera.up = vec3.fromValues(0.0, 1.0, 0.0);
         this._camera.eye = vec3.fromValues(-0.0, 0.0, 2.0);
-        this._camera.near = 1.0;
-        this._camera.far = 8.0;
+        this._camera.near = 0.1;
+        this._camera.far = 16.0;
 
         this._navigation = new Navigation(callback, mouseEventProvider);
         this._navigation.camera = this._camera;
@@ -153,9 +161,18 @@ export class ModelRenderer extends Renderer {
 
         gl.viewport(0, 0, this._frameSize[0], this._frameSize[1]);
 
+        const m = this._modelMatrix;
+        const v = this._camera.view;
+        const vp = this._camera.viewProjection;
+        const mv = mat4.mul(mat4.create(), v, m);
+        const mvi = mat4.invert(mat4.create(), mv);
+        const mvit = mat4.transpose(mat4.create(), mvi);
+        const mvit3 = mat3.fromMat4(mat3.create(), mvit);
+
         this._program.bind();
-        gl.uniformMatrix4fv(
-            this._uViewProjection, gl.GL_FALSE, this._camera.viewProjection);
+        gl.uniformMatrix4fv(this._uModel, false, m);
+        gl.uniformMatrix4fv(this._uViewProjection, false, vp);
+        gl.uniformMatrix3fv(this._uModelViewInverseTranspose, false, mvit3);
 
         this._geometry.bind();
         this._geometry.draw();

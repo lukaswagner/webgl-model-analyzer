@@ -13,12 +13,11 @@ export class HalfEdgeGeometry extends Geometry {
     protected INDICES = new Uint32Array([]);
     protected NORMALS = new Float32Array([]);
     protected VERTICES = new Float32Array([]);
+    protected VALUES = new Float32Array([]);
 
-    /** @see {@link vertexLocation} */
     protected _vertexLocation: GLuint = 0;
-
-    /** @see {@link normalLocation} */
     protected _normalLocation: GLuint;
+    protected _valueLocation: GLuint;
 
     /**
      * Object constructor, requires a context and an identifier.
@@ -33,15 +32,19 @@ export class HalfEdgeGeometry extends Geometry {
         identifier = identifier !== undefined && identifier !== ``
                 ? identifier : this.constructor.name;
 
-        /* Generate vertex buffers. */
+        /* Generate vertex buffer. */
         const vertexVBO = new Buffer(context);
         this._buffers.push(vertexVBO);
 
-        /* Generate normal buffers. */
+        /* Generate normal buffer. */
         const normalBuffer = new Buffer(context);
         this._buffers.push(normalBuffer);
 
-        /* Generate index buffers. */
+        /* Generate value buffer. */
+        const valueBuffer = new Buffer(context);
+        this._buffers.push(valueBuffer);
+
+        /* Generate index buffer. */
         const indexBuffer = new Buffer(context);
         this._buffers.push(indexBuffer);
     }
@@ -58,7 +61,10 @@ export class HalfEdgeGeometry extends Geometry {
         this._buffers[1].attribEnable(
                 this._normalLocation, 3, this.context.gl.FLOAT,
                 false, 0, 0, true, false);
-        this._buffers[2].bind();
+        this._buffers[2].attribEnable(
+                this._valueLocation, 3, this.context.gl.FLOAT,
+                false, 0, 0, true, false);
+        this._buffers[3].bind();
     }
 
     /**
@@ -67,7 +73,8 @@ export class HalfEdgeGeometry extends Geometry {
     protected unbindBuffers(): void {
         this._buffers[0].attribDisable(this._vertexLocation, true, true);
         this._buffers[1].attribDisable(this._normalLocation, true, true);
-        this._buffers[2].unbind();
+        this._buffers[2].attribDisable(this._valueLocation, true, true);
+        this._buffers[3].unbind();
     }
 
     /**
@@ -76,20 +83,32 @@ export class HalfEdgeGeometry extends Geometry {
      * @param vertexLocation - Attribute binding point for vertices.
      * @param normalLocation - Attribute binding point for vertex normal.
      */
-    initialize(vertexLocation: GLuint = 0, normalLocation: GLuint = 1)
-            : boolean {
-
+    initialize(
+        vertexLocation: GLuint = 0,
+        normalLocation: GLuint = 1,
+        valueLocation: GLuint = 2
+    ) : boolean {
         this._vertexLocation = vertexLocation;
         this._normalLocation = normalLocation;
+        this._valueLocation = valueLocation;
 
         const gl = this.context.gl as WebGLRenderingContext;
         const valid = super.initialize(
-                [gl.ARRAY_BUFFER, gl.ARRAY_BUFFER, gl.ELEMENT_ARRAY_BUFFER],
-                [vertexLocation, normalLocation]);
+                [
+                    gl.ARRAY_BUFFER,
+                    gl.ARRAY_BUFFER,
+                    gl.ARRAY_BUFFER,
+                    gl.ELEMENT_ARRAY_BUFFER
+                ], [
+                    vertexLocation,
+                    normalLocation,
+                    valueLocation
+                ]);
 
         this._buffers[0].data(this.VERTICES, gl.STATIC_DRAW);
         this._buffers[1].data(this.NORMALS, gl.STATIC_DRAW);
-        this._buffers[2].data(this.INDICES, gl.STATIC_DRAW);
+        this._buffers[2].data(this.VALUES, gl.STATIC_DRAW);
+        this._buffers[3].data(this.INDICES, gl.STATIC_DRAW);
 
         return valid;
     }
@@ -120,10 +139,18 @@ export class HalfEdgeGeometry extends Geometry {
         this.VERTICES = model.getVertices();
         this.INDICES = model.getIndices();
         this.NORMALS = model.getNormals();
+        this.VALUES = new Float32Array(this.NORMALS.length);
 
         const gl = this.context.gl;
-        this._buffers[0].data(this.VERTICES, gl.DYNAMIC_DRAW);
-        this._buffers[1].data(this.NORMALS, gl.DYNAMIC_DRAW);
-        this._buffers[2].data(this.INDICES, gl.DYNAMIC_DRAW);
+        this._buffers[0].data(this.VERTICES, gl.STATIC_DRAW);
+        this._buffers[1].data(this.NORMALS, gl.STATIC_DRAW);
+        this._buffers[2].data(this.VALUES, gl.STATIC_DRAW);
+        this._buffers[3].data(this.INDICES, gl.STATIC_DRAW);
+    }
+
+    set filterValues(values: Float32Array) {
+        this.VALUES = values;
+        const gl = this.context.gl;
+        this._buffers[2].data(this.VALUES, gl.STATIC_DRAW);
     }
 }
