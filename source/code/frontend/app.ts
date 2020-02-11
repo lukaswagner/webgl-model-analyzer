@@ -20,6 +20,10 @@ export class App extends Initializable {
     private _progress: HTMLProgressElement;
     private _filterSelect: HTMLSelectElement;
 
+    /**
+     * Initializes the application.
+     * @param element The element which should be used for the rendering canvas.
+     */
     initialize(element: HTMLCanvasElement | string): boolean {
         this._canvas = new Canvas(element);
 
@@ -35,6 +39,9 @@ export class App extends Initializable {
         return true;
     }
 
+    /**
+     * Initializes the progress bar.
+     */
     setupProgress(): void {
         this._progress =
             document.getElementById('filter-progress') as HTMLProgressElement;
@@ -42,6 +49,9 @@ export class App extends Initializable {
         this._progress.value = 0;
     }
 
+    /**
+     * Initializes the controls.
+     */
     setupControls(): void {
         // filter selection
         // should already exist when loading the first file -> initialized first
@@ -111,8 +121,11 @@ export class App extends Initializable {
         scaleRange.step = scaleStep;
     }
 
+    /**
+     * Loads an stl from the server and processes it.
+     * @param path The file to load.
+     */
     load(path: string): void {
-        console.log(path);
         fetch('data/' + path).then((res) => {
             res.text().then((stl) => {
                 this._mesh = parseStl(stl);
@@ -126,6 +139,9 @@ export class App extends Initializable {
         });
     }
 
+    /**
+     * Run the filters using web workers.
+     */
     calculateFilters() {
         this._progress.value = 0;
         const workers = new Array<FilterWorker>();
